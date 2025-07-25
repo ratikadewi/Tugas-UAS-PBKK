@@ -30,14 +30,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import BarangFormModal from "./BarangFormModal";
 
-interface Diskon {
-  discount_type: "percentage" | "fixed";
-  discount_value: number;
-  is_active: boolean;
-  start_date: string;
-  end_date: string;
-}
-
 interface Barang {
   id?: string;
   name: string;
@@ -45,7 +37,6 @@ interface Barang {
   price: number;
   quantity_product: number;
   categories?: { name: string };
-  diskon?: Diskon;
 }
 
 export default function BarangList() {
@@ -56,19 +47,10 @@ export default function BarangList() {
     fetchProduct()
       .then((data) => {
         console.log("Fetched Barang (useEffect):", data);
-        // normalisasi data dst...
         const normalizedData = data.map((item: any) => ({
           ...item,
           price: Number(item.price),
           quantity_product: Number(item.quantity_product),
-          diskon: item.diskon
-            ? {
-                ...item.diskon,
-                discount_value: Number(item.diskon.discount_value),
-                discount_type: item.diskon.discount_type.toLowerCase().trim(),
-                is_active: Boolean(item.diskon.is_active),
-              }
-            : undefined,
         }));
         setBarang(normalizedData);
       })
@@ -83,7 +65,6 @@ export default function BarangList() {
     try {
       await deleteProduct(id, token);
       toast.success("Barang berhasil dihapus");
-      // Update state after delete
       setBarang((prev) => prev.filter((item) => item.id !== id));
       console.log(`Deleted Barang id: ${id}`);
     } catch (err) {
@@ -97,19 +78,10 @@ export default function BarangList() {
       console.log("Updating Barang data:", data);
       await updateProduct(data.id, data, token);
       const updatedBarang = await fetchProduct();
-      console.log("Updated Barang list:", updatedBarang);
       const normalizedData = updatedBarang.map((item: any) => ({
         ...item,
         price: Number(item.price),
         quantity_product: Number(item.quantity_product),
-        diskon: item.diskon
-          ? {
-              ...item.diskon,
-              discount_value: Number(item.diskon.discount_value),
-              discount_type: item.diskon.discount_type.toLowerCase().trim(),
-              is_active: Boolean(item.diskon.is_active),
-            }
-          : undefined,
       }));
       setBarang(normalizedData);
       toast.success("Barang berhasil diupdate");
@@ -124,19 +96,10 @@ export default function BarangList() {
       console.log("Creating Barang data:", data);
       await createProduct(data, token);
       const updated = await fetchProduct();
-      console.log("Barang list after create:", updated);
       const normalizedData = updated.map((item: any) => ({
         ...item,
         price: Number(item.price),
         quantity_product: Number(item.quantity_product),
-        diskon: item.diskon
-          ? {
-              ...item.diskon,
-              discount_value: Number(item.diskon.discount_value),
-              discount_type: item.diskon.discount_type.toLowerCase().trim(),
-              is_active: Boolean(item.diskon.is_active),
-            }
-          : undefined,
       }));
       setBarang(normalizedData);
       toast.success("Barang berhasil ditambahkan");
@@ -151,21 +114,6 @@ export default function BarangList() {
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(angka);
-
-  const getFinalPrice = (product: Barang) => {
-    if (!product.diskon || !product.diskon.is_active) {
-      return product.price;
-    }
-    const price = product.price;
-    const discountValue = product.diskon.discount_value;
-    const discountType = product.diskon.discount_type;
-
-    if (discountType === "percentage") {
-      return Math.round(price * (1 - discountValue / 100));
-    } else {
-      return Math.max(0, price - discountValue);
-    }
-  };
 
   return (
     <div className="rounded-md border p-4 space-y-4">
@@ -186,7 +134,6 @@ export default function BarangList() {
             <TableHead>Harga Barang</TableHead>
             <TableHead>Jumlah Barang</TableHead>
             <TableHead>Kategory</TableHead>
-            <TableHead>Status Diskon</TableHead>
             <TableHead className="text-right">Aksi</TableHead>
           </TableRow>
         </TableHeader>
@@ -197,16 +144,9 @@ export default function BarangList() {
               <TableCell>{index + 1}</TableCell>
               <TableCell>{item.name}</TableCell>
               <TableCell>{item.description}</TableCell>
-              <TableCell>{formatRupiah(getFinalPrice(item))}</TableCell>
+              <TableCell>{formatRupiah(item.price)}</TableCell>
               <TableCell>{item.quantity_product}</TableCell>
               <TableCell>{item.categories?.name}</TableCell>
-              <TableCell>
-                {item.diskon
-                  ? item.diskon.is_active
-                    ? "Aktif"
-                    : "Tidak Aktif"
-                  : "-"}
-              </TableCell>
               <TableCell className="text-right space-x-2">
                 <BarangFormModal
                   barang={item}
